@@ -3,12 +3,12 @@ export const AI_CONFIG = {
   temperature: 0.7,
   maxTokens: {
     summary: 4096,
-    structured: 2048,
+    structured: 8192,
   },
 } as const;
 
 export const PAPER_CONFIG = {
-  topPapersCount: 5,
+  topPapersCount: 3,
   maxAuthorsDisplay: {
     short: 3,
     long: 5,

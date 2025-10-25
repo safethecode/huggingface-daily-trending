@@ -84,66 +84,72 @@ export async function analyzePapersStructured(
       maxTokens: AI_CONFIG.maxTokens.structured,
     });
 
-    const analyzedPapers: PaperSummary[] = [];
+    const papersText = topPapers
+      .map((paper, index) => formatPaperForSummary(paper, index))
+      .join("\n---\n");
 
-    for (const paper of topPapers) {
-      try {
-        const promptTemplate = PromptTemplate.fromTemplate(
-          PROMPTS.structuredAnalysis
-        );
+    const promptTemplate = PromptTemplate.fromTemplate(
+      PROMPTS.batchStructuredAnalysis
+    );
 
-        const outputParser = new StringOutputParser();
-        const chain = promptTemplate.pipe(model).pipe(outputParser);
+    const outputParser = new StringOutputParser();
+    const chain = promptTemplate.pipe(model).pipe(outputParser);
 
-        const result = await chain.invoke({
-          title: paper.title,
-          authors: formatAuthors(
-            paper.authors,
-            PAPER_CONFIG.maxAuthorsDisplay.long
-          ),
-          abstract: paper.abstract,
-        });
+    console.log("Analyzing all papers in a single API call...");
+    const result = await chain.invoke({
+      papers: papersText,
+    });
 
-        const jsonMatch = result.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          analyzedPapers.push({
-            title: paper.title,
-            titleKo: parsed.titleKo,
-            authors: formatAuthors(
-              paper.authors,
-              PAPER_CONFIG.maxAuthorsDisplay.short
-            ),
-            organization: paper.organization,
-            summary: parsed.summary,
-            keyPoints: parsed.keyPoints || [],
-            significance: parsed.significance,
-            eliFor5: parsed.eliFor5,
-            paperUrl: paper.paperUrl,
-            upvotes: paper.upvotes,
-          });
-        } else {
-          throw new Error("Failed to parse JSON from AI response");
-        }
-      } catch (error) {
-        console.error(`Error analyzing paper ${paper.id}:`, error);
-        analyzedPapers.push({
+    const jsonMatch = result.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error("Failed to parse JSON array from AI response");
+    }
+
+    const parsedResults = JSON.parse(jsonMatch[0]);
+
+    if (!Array.isArray(parsedResults)) {
+      throw new Error("AI response is not an array");
+    }
+
+    const analyzedPapers: PaperSummary[] = topPapers.map((paper, index) => {
+      const analysis = parsedResults[index];
+
+      if (!analysis) {
+        return {
           title: paper.title,
           authors: formatAuthors(
             paper.authors,
             PAPER_CONFIG.maxAuthorsDisplay.short
           ),
+          organization: paper.organization,
           summary:
             paper.abstract.slice(0, PAPER_CONFIG.abstractPreviewLength.long) +
             "...",
-          organization: paper.organization,
           keyPoints: [],
           significance: "",
           paperUrl: paper.paperUrl,
           upvotes: paper.upvotes,
-        });
+        };
       }
-    }
+
+      return {
+        title: paper.title,
+        titleKo: analysis.titleKo,
+        authors: formatAuthors(
+          paper.authors,
+          PAPER_CONFIG.maxAuthorsDisplay.short
+        ),
+        organization: paper.organization,
+        summary: analysis.summary,
+        keyPoints: analysis.keyPoints || [],
+        significance: analysis.significance,
+        eliFor5: analysis.eliFor5,
+        paperUrl: paper.paperUrl,
+        upvotes: paper.upvotes,
+      };
+    });
+
+    console.log("Batch analysis completed");
 
     return {
       date: papers[0]?.publishedDate || "",

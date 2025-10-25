@@ -38,6 +38,28 @@ export const PROMPTS = {
 }}
 
 기술적 배경이 없는 사람도 이해할 수 있도록 쉽게 작성해주세요.`,
+
+  batchStructuredAnalysis: `다음은 오늘 Hugging Face에서 인기있는 AI/ML 논문들입니다. 각 논문을 분석하고 한글로 요약해주세요.
+
+{papers}
+
+다음 형식으로 JSON 배열을 반환해주세요 (JSON만 반환, 다른 텍스트 없이):
+[
+  {{
+    "titleKo": "논문 제목의 한글 번역",
+    "summary": "핵심 내용을 2-3문장으로 요약",
+    "keyPoints": [
+      "첫 번째 주요 기여점",
+      "두 번째 주요 기여점",
+      "세 번째 주요 기여점"
+    ],
+    "significance": "이 논문의 의의를 1-2문장으로 설명",
+    "eliFor5": "초등학생도 이해할 수 있도록 아주 쉽게 비유를 들어 2-3문장으로 설명 (예: '마치 ~처럼', '~와 비슷하게' 등의 비유 사용)"
+  }},
+  ... (각 논문마다 위 형식 반복)
+]
+
+기술적 배경이 없는 사람도 이해할 수 있도록 쉽게 작성해주세요.`,
 } as const;
 
 export type PromptKey = keyof typeof PROMPTS;
