@@ -1,0 +1,32 @@
+{
+  "name": "huggingface-daily-trending",
+  "version": "1.0.0",
+  "description": "Daily Hugging Face paper summarizer with Google Chat notifications",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "start": "wrangler dev",
+    "test": "wrangler dev --test-scheduled"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "huggingface",
+    "langchain",
+    "ai"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241022.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.78.0"
+  },
+  "dependencies": {
+    "@langchain/anthropic": "^0.3.7",
+    "@langchain/core": "^0.3.17",
+    "langchain": "^0.3.5"
+  }
+}
