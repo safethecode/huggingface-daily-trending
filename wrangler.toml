@@ -5,7 +5,3 @@ compatibility_flags = ["nodejs_compat"]
 
 [triggers]
 crons = ["0 0 * * *"]
-
-# 메모리 제한 및 타임아웃 설정
-[limits]
-cpu_ms = 50000
