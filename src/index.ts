@@ -19,14 +19,21 @@ export default {
       return new Response("OK", { status: 200 });
     }
 
-    if (url.pathname === "/trigger" && request.method === "POST") {
+    if (url.pathname === "/trigger") {
       try {
         const date = url.searchParams.get("date") || getYesterdayDate();
         await processDailyPapers(env, date);
-        return new Response(JSON.stringify({ success: true, date }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            success: true,
+            date,
+            message: "Papers analyzed and sent to Google Chat",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
