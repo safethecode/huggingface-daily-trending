@@ -1,10 +1,6 @@
 import { Env } from "./types";
 import { fetchDailyPapers } from "./huggingface";
-import {
-  analyzePapersWithLangchain,
-  generateSimpleSummary,
-  analyzePapersStructured,
-} from "./langchain-analyzer";
+import { analyzePapersStructured } from "./langchain-analyzer";
 import {
   sendErrorToGoogleChat,
   formatPapersForGoogleChat,
@@ -188,40 +184,55 @@ async function processDailyPapers(env: Env, date: string): Promise<void> {
 
   console.log(`Found ${papers.length} papers`);
 
-  let summary: string;
+  let result;
 
   if (env.ANTHROPIC_API_KEY) {
     try {
-      console.log("Analyzing papers with Langchain...");
-      summary = await analyzePapersWithLangchain(papers, env.ANTHROPIC_API_KEY);
-      console.log("Langchain analysis completed");
+      console.log("Analyzing papers with structured AI analysis...");
+      result = await analyzePapersStructured(papers, env.ANTHROPIC_API_KEY);
+      console.log("Structured analysis completed");
     } catch (error) {
-      console.error(
-        "Failed to analyze with Langchain, trying direct API:",
-        error
-      );
-      try {
-        summary = await analyzePapersWithLangchain(
-          papers,
-          env.ANTHROPIC_API_KEY
-        );
-        console.log("Direct API analysis completed");
-      } catch (apiError) {
-        console.error(
-          "Failed to analyze with direct API, using simple summary:",
-          apiError
-        );
-        summary = generateSimpleSummary(papers);
-      }
+      console.error("Failed to analyze with AI, using fallback:", error);
+      result = {
+        date,
+        count: papers.length,
+        papers: papers.slice(0, 5).map((paper) => ({
+          title: paper.title,
+          authors:
+            paper.authors.slice(0, 3).join(", ") +
+            (paper.authors.length > 3 ? " 외" : ""),
+          organization: paper.organization,
+          summary: paper.abstract.slice(0, 300) + "...",
+          keyPoints: [],
+          significance: "",
+          paperUrl: paper.paperUrl,
+          upvotes: paper.upvotes,
+        })),
+      };
     }
   } else {
-    console.log("No API key found, using simple summary");
-    summary = generateSimpleSummary(papers);
+    console.log("No API key found, using basic info");
+    result = {
+      date,
+      count: papers.length,
+      papers: papers.slice(0, 5).map((paper) => ({
+        title: paper.title,
+        authors:
+          paper.authors.slice(0, 3).join(", ") +
+          (paper.authors.length > 3 ? " 외" : ""),
+        organization: paper.organization,
+        summary: paper.abstract.slice(0, 300) + "...",
+        keyPoints: [],
+        significance: "",
+        paperUrl: paper.paperUrl,
+        upvotes: paper.upvotes,
+      })),
+    };
   }
 
   if (env.GOOGLE_CHAT_WEBHOOK_URL) {
     console.log("Sending to Google Chat...");
-    const chatMessage = formatPapersForGoogleChat(papers, summary);
+    const chatMessage = formatPapersForGoogleChat(result, date);
 
     const response = await fetch(env.GOOGLE_CHAT_WEBHOOK_URL, {
       method: "POST",
@@ -240,6 +251,6 @@ async function processDailyPapers(env: Env, date: string): Promise<void> {
     }
   } else {
     console.warn("No Google Chat webhook URL configured");
-    console.log("Summary:", summary);
+    console.log("Analysis result:", JSON.stringify(result, null, 2));
   }
 }

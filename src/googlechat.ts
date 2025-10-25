@@ -1,35 +1,50 @@
-import { GoogleChatMessage, HuggingFacePaper } from "./types";
-import { GOOGLE_CHAT_CONFIG } from "./config/constants";
-import { formatAuthors } from "./utils/format";
+import { GoogleChatMessage, AnalyzedPapersResponse } from "./types";
 
 export function formatPapersForGoogleChat(
-  papers: HuggingFacePaper[],
-  summary: string
+  result: AnalyzedPapersResponse,
+  dateStr: string
 ): GoogleChatMessage {
-  const date = new Date().toLocaleDateString("ko-KR", {
+  const date = new Date(dateStr).toLocaleDateString("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "long",
   });
 
-  const summaryParts = summary.split(/\*\*\[\d+\]/);
-  const intro = summaryParts[0] || "";
+  const paperWidgets = result.papers.map((paper, index) => {
+    const titleText = paper.titleKo
+      ? `${paper.titleKo}\n<i>${paper.title}</i>`
+      : paper.title;
 
-  const paperWidgets = papers.slice(0, 5).map((paper, index) => {
-    const paperSummary = summaryParts[index + 1] || "";
+    let content = `<b>${index + 1}. ${titleText}</b>\n`;
+    content += `⭐ ${paper.upvotes || 0} | 👥 ${paper.authors}`;
+
+    if (paper.organization) {
+      content += ` | 🏢 ${paper.organization}`;
+    }
+
+    content += `\n\n${paper.summary}`;
+
+    if (paper.keyPoints && paper.keyPoints.length > 0) {
+      content += "\n\n<b>주요 포인트:</b>";
+      paper.keyPoints.forEach((point) => {
+        content += `\n• ${point}`;
+      });
+    }
+
+    if (paper.significance) {
+      content += `\n\n<b>의의:</b> ${paper.significance}`;
+    }
+
+    if (paper.eliFor5) {
+      content += `\n\n<b>쉽게 설명하면:</b> ${paper.eliFor5}`;
+    }
+
+    content += `\n\n<a href="${paper.paperUrl}">논문 보기 →</a>`;
 
     return {
       textParagraph: {
-        text: `<b>${index + 1}. ${paper.title}</b>\n⭐ ${
-          paper.upvotes || 0
-        } | 👥 ${formatAuthors(
-          paper.authors,
-          GOOGLE_CHAT_CONFIG.maxAuthorsInCard
-        )}\n\n${paperSummary.substring(
-          0,
-          GOOGLE_CHAT_CONFIG.maxSummaryLength
-        )}...\n\n<a href="${paper.paperUrl}">논문 보기 →</a>`,
+        text: content,
       },
     };
   });
@@ -46,9 +61,7 @@ export function formatPapersForGoogleChat(
             widgets: [
               {
                 textParagraph: {
-                  text:
-                    intro.trim() ||
-                    `오늘 ${papers.length}개의 인기 논문을 소개합니다.`,
+                  text: `오늘 ${result.count}개의 인기 논문 중 상위 ${result.papers.length}개를 AI가 분석했습니다.`,
                 },
               },
             ],
