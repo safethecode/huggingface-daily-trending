@@ -1,11 +1,8 @@
 import { Env } from "./types";
 import { fetchDailyPapers } from "./huggingface";
 import { analyzePapersStructured } from "./langchain-analyzer";
-import {
-  sendErrorToGoogleChat,
-  formatPapersForGoogleChat,
-} from "./googlechat";
-import { getYesterdayDate } from "./utils/date";
+import { sendErrorToGoogleChat, formatPapersForGoogleChat } from "./googlechat";
+import { getTodayDate } from "./utils/date";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -17,7 +14,7 @@ export default {
 
     if (url.pathname === "/trigger") {
       try {
-        const date = url.searchParams.get("date") || getYesterdayDate();
+        const date = url.searchParams.get("date") || getTodayDate();
         await processDailyPapers(env, date);
         return new Response(
           JSON.stringify({
@@ -45,7 +42,7 @@ export default {
 
     if (url.pathname === "/test") {
       try {
-        const date = url.searchParams.get("date") || getYesterdayDate();
+        const date = url.searchParams.get("date") || getTodayDate();
         const papers = await fetchDailyPapers(date);
 
         return new Response(
@@ -71,7 +68,7 @@ export default {
 
     if (url.pathname === "/analyze") {
       try {
-        const date = url.searchParams.get("date") || getYesterdayDate();
+        const date = url.searchParams.get("date") || getTodayDate();
         const papers = await fetchDailyPapers(date);
 
         if (papers.length === 0) {
@@ -157,7 +154,7 @@ export default {
     );
 
     try {
-      const date = getYesterdayDate();
+      const date = getTodayDate();
       await processDailyPapers(env, date);
     } catch (error) {
       console.error("Error in scheduled handler:", error);
