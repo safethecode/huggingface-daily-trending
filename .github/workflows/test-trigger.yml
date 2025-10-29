@@ -1,0 +1,31 @@
+name: Test Trigger (Every Minute)
+
+on:
+  schedule:
+    # 매 1분마다 실행
+    - cron: '* * * * *'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  trigger:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run daily papers script
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_TEST_URL }}
+        run: |
+          echo "Running test script at $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
+          npx tsx scripts/run-daily.ts
