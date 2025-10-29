@@ -1,15 +1,13 @@
 name: Weekday Trigger
 
 on:
+  workflow_dispatch:
   schedule:
-    # 평일 오후 12시 (KST) = 오전 3시 (UTC)
-    # 월요일~금요일만 실행
     - cron: '0 3 * * 1-5'
-  workflow_dispatch: # 수동 실행 가능
 
 jobs:
   trigger:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Check if weekday (KST)
         id: check-day
