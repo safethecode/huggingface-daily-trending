@@ -1,0 +1,51 @@
+name: Weekday Trigger
+
+on:
+  schedule:
+    # 평일 오후 12시 (KST) = 오전 3시 (UTC)
+    # 월요일~금요일만 실행
+    - cron: '0 3 * * 1-5'
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  trigger:
+    runs-on: self-hosted
+    steps:
+      - name: Check if weekday (KST)
+        id: check-day
+        run: |
+          # 한국 시간으로 현재 요일 확인 (1=월요일, 7=일요일)
+          KST_DAY=$(TZ=Asia/Seoul date +%u)
+          echo "Current day (KST): $KST_DAY"
+
+          if [ $KST_DAY -ge 1 ] && [ $KST_DAY -le 5 ]; then
+            echo "weekday=true" >> $GITHUB_OUTPUT
+            echo "Today is a weekday in KST"
+          else
+            echo "weekday=false" >> $GITHUB_OUTPUT
+            echo "Today is a weekend in KST, skipping"
+          fi
+
+      - name: Checkout code
+        if: steps.check-day.outputs.weekday == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.check-day.outputs.weekday == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.check-day.outputs.weekday == 'true'
+        run: npm ci
+
+      - name: Run daily papers script
+        if: steps.check-day.outputs.weekday == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_CHAT_WEBHOOK_URL: ${{ secrets.GOOGLE_CHAT_WEBHOOK_URL }}
+        run: |
+          echo "Running daily papers script at $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S %Z')"
+          npx tsx scripts/run-daily.ts
